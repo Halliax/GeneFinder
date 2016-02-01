@@ -2,7 +2,7 @@
 """
 YOUR HEADER COMMENT HERE
 
-@author: YOUR NAME HERE
+@author: Taylor Sheneman
 
 """
 
@@ -25,13 +25,28 @@ def get_complement(nucleotide):
 
         nucleotide: a nucleotide (A, C, G, or T) represented as a string
         returns: the complementary nucleotide
+
+    tests: test each use case. All other cases throw an exception.
+
     >>> get_complement('A')
     'T'
     >>> get_complement('C')
     'G'
+    >>> get_complement('T')
+    'A'
+    >>> get_complement('G')
+    'C'
     """
-    # TODO: implement this
-    pass
+    if nucleotide == 'A':
+        return 'T'
+    elif nucleotide == 'C':
+        return 'G'
+    elif nucleotide == 'T':
+        return 'A'
+    elif nucleotide == 'G':
+        return 'C'
+    else:
+        raise KeyError("There is an invalid nucleotide in that string!")
 
 
 def get_reverse_complement(dna):
@@ -40,13 +55,28 @@ def get_reverse_complement(dna):
 
         dna: a DNA sequence represented as a string
         returns: the reverse complementary DNA sequence represented as a string
+
+    tests: These seem fine. All codons are used, lengths vary.
+    Still, added an empty string test.
+
     >>> get_reverse_complement("ATGCCCGCTTT")
     'AAAGCGGGCAT'
     >>> get_reverse_complement("CCGCGTTCA")
     'TGAACGCGG'
+    >>> get_reverse_complement("")
+    ''
     """
-    # TODO: implement this
-    pass
+    reverse_complements = ''
+    for nucleotide in dna:
+        current = get_complement(nucleotide)
+        #if current == None:
+        #    print "There is an invalid nucleotide in that string."
+        #    return None
+        reverse_complements = current + reverse_complements
+    return reverse_complements
+
+
+
 
 
 def rest_of_ORF(dna):
@@ -57,13 +87,23 @@ def rest_of_ORF(dna):
 
         dna: a DNA sequence
         returns: the open reading frame represented as a string
+
+    tests: Correct use cases with and without stop codons.
+
     >>> rest_of_ORF("ATGTGAA")
     'ATG'
     >>> rest_of_ORF("ATGAGATAGG")
     'ATGAGA'
+    >>> rest_of_ORF("ATGAGATCAGAC")
+    'ATGAGATCAGAC'
     """
-    # TODO: implement this
-    pass
+    i = 0
+    stop_codons = ['TAG','TAA','TGA']
+    while i < len(dna) - 2:
+        if dna[i:i+3] in stop_codons:
+            return dna[:i]
+        i += 3
+    return dna
 
 
 def find_all_ORFs_oneframe(dna):
@@ -76,11 +116,25 @@ def find_all_ORFs_oneframe(dna):
 
         dna: a DNA sequence
         returns: a list of non-nested ORFs
+
+    tests: Added a nested case.
+
     >>> find_all_ORFs_oneframe("ATGCATGAATGTAGATAGATGTGCCC")
     ['ATGCATGAATGTAGA', 'ATGTGCCC']
+    >>> find_all_ORFs_oneframe("ATGCATGAAATGAGATAGATGTGCCC")
+    ['ATGCATGAAATGAGA', 'ATGTGCCC']
     """
-    # TODO: implement this
-    pass
+    i = 0
+    one_ORF_list = []
+    while i < len(dna) - 2:
+        if dna[i:i+3] == 'ATG':
+            ORF = rest_of_ORF(dna[i:])
+            one_ORF_list.append(ORF)
+            i += len(ORF)
+        else:
+            i += 3
+    return one_ORF_list
+
 
 
 def find_all_ORFs(dna):
@@ -93,11 +147,16 @@ def find_all_ORFs(dna):
         dna: a DNA sequence
         returns: a list of non-nested ORFs
 
+    tests: This comprehensively tests the reading frame shift. I don't have
+    additional tests to run.
+
     >>> find_all_ORFs("ATGCATGAATGTAG")
     ['ATGCATGAATGTAG', 'ATGAATGTAG', 'ATG']
     """
-    # TODO: implement this
-    pass
+    ORF_list = []
+    for i in range(3):
+        ORF_list = ORF_list + find_all_ORFs_oneframe(dna[i:])
+    return ORF_list
 
 
 def find_all_ORFs_both_strands(dna):
@@ -106,11 +165,15 @@ def find_all_ORFs_both_strands(dna):
 
         dna: a DNA sequence
         returns: a list of non-nested ORFs
+
+    tests: This tests the use of reverse complement. All other cases are covered
+    by previous functions.
+
     >>> find_all_ORFs_both_strands("ATGCGAATGTAGCATCAAA")
     ['ATGCGAATG', 'ATGCTACATTCGCAT']
     """
-    # TODO: implement this
-    pass
+    ORF_master_list = find_all_ORFs(dna) + find_all_ORFs(get_reverse_complement(dna))
+    return ORF_master_list
 
 
 def longest_ORF(dna):
@@ -164,3 +227,4 @@ def gene_finder(dna):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
+    #doctest.run_docstring_examples(find_all_ORFs, globals())
