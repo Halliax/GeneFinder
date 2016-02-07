@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-YOUR HEADER COMMENT HERE
+Given a DNA sequence, prints a list of the protein sequences encoded by all
+likely coding regions.
 
 @author: Taylor Sheneman
 
@@ -37,16 +38,13 @@ def get_complement(nucleotide):
     >>> get_complement('G')
     'C'
     """
-    if nucleotide == 'A':
-        return 'T'
-    elif nucleotide == 'C':
-        return 'G'
-    elif nucleotide == 'T':
-        return 'A'
-    elif nucleotide == 'G':
-        return 'C'
+    nucleotides = ['A','C','T','G']
+    complements = ['T','G','A','C']
+    if nucleotide in nucleotides:
+        return complements[nucleotides.index(nucleotide)]
     else:
         raise KeyError("There is an invalid nucleotide in that string!")
+
 
 
 def get_reverse_complement(dna):
@@ -66,16 +64,12 @@ def get_reverse_complement(dna):
     >>> get_reverse_complement("")
     ''
     """
-    reverse_complements = ''
-    for nucleotide in dna:
-        current = get_complement(nucleotide)
-        #if current == None:
-        #    print "There is an invalid nucleotide in that string."
-        #    return None
-        reverse_complements = current + reverse_complements
-    return reverse_complements
-
-
+    # reverse_complements = ''
+    # for nucleotide in dna:
+    #     current = get_complement(nucleotide)
+    #     reverse_complements = current + reverse_complements
+    reverse_complements = [get_complement(dna[i]) for i in range(len(dna)-1,-1,-1)]
+    return ''.join(reverse_complements)
 
 
 
@@ -97,13 +91,14 @@ def rest_of_ORF(dna):
     >>> rest_of_ORF("ATGAGATCAGAC")
     'ATGAGATCAGAC'
     """
-    i = 0
     stop_codons = ['TAG','TAA','TGA']
-    while i < len(dna) - 2:
+    i = 0
+    while i < len(dna):
         if dna[i:i+3] in stop_codons:
             return dna[:i]
         i += 3
     return dna
+
 
 
 def find_all_ORFs_oneframe(dna):
@@ -126,7 +121,7 @@ def find_all_ORFs_oneframe(dna):
     """
     i = 0
     one_ORF_list = []
-    while i < len(dna) - 2:
+    while i < len(dna):
         if dna[i:i+3] == 'ATG':
             ORF = rest_of_ORF(dna[i:])
             one_ORF_list.append(ORF)
@@ -153,10 +148,12 @@ def find_all_ORFs(dna):
     >>> find_all_ORFs("ATGCATGAATGTAG")
     ['ATGCATGAATGTAG', 'ATGAATGTAG', 'ATG']
     """
-    ORF_list = []
-    for i in range(3):
-        ORF_list = ORF_list + find_all_ORFs_oneframe(dna[i:])
+    # ORF_list = []
+    # for i in range(3):
+    #     ORF_list = ORF_list + find_all_ORFs_oneframe(dna[i:])
+    ORF_list = sum([find_all_ORFs_oneframe(dna[i:]) for i in range(3)],[])
     return ORF_list
+
 
 
 def find_all_ORFs_both_strands(dna):
@@ -176,14 +173,28 @@ def find_all_ORFs_both_strands(dna):
     return ORF_master_list
 
 
+
 def longest_ORF(dna):
     """ Finds the longest ORF on both strands of the specified DNA and returns it
         as a string
+
+    tests: Two sequences with varying numbers of ORFs, and one with none.
+
     >>> longest_ORF("ATGCGAATGTAGCATCAAA")
     'ATGCTACATTCGCAT'
+
+    >>> longest_ORF("ATGCATGAATGTAGATAGATGTGCCC")
+    'ATGAATGTAGATAGATGTGCCC'
+
+    >>> longest_ORF("CAGGAACGTAG")
+    ''
     """
-    # TODO: implement this
-    pass
+    ORFs = find_all_ORFs_both_strands(dna)
+    if len(ORFs) == 0:
+        return ''
+    lengths = [len(ORF) for ORF in ORFs]
+    return ORFs[lengths.index(max(lengths))]
+
 
 
 def longest_ORF_noncoding(dna, num_trials):
@@ -192,9 +203,17 @@ def longest_ORF_noncoding(dna, num_trials):
 
         dna: a DNA sequence
         num_trials: the number of random shuffles
-        returns: the maximum length longest ORF """
-    # TODO: implement this
-    pass
+        returns: the maximum length longest ORF
+
+    tests: cannot do. The output is randomized. Instead, I printed out a bunch of
+    results to see if they seemed reasonable.
+
+    """
+    lengths = [len(longest_ORF(shuffle_string(dna))) for i in range(num_trials)]
+    # print longest_ORF(shuffle_string(dna))
+    # print lengths
+    return max(lengths)
+
 
 
 def coding_strand_to_AA(dna):
@@ -206,13 +225,22 @@ def coding_strand_to_AA(dna):
         returns: a string containing the sequence of amino acids encoded by the
                  the input DNA fragment
 
-        >>> coding_strand_to_AA("ATGCGA")
-        'MR'
-        >>> coding_strand_to_AA("ATGCCCGCTTT")
-        'MPA'
+    tests: Added a longer case by manually looking up the expected output.
+    Included stop codon, for kicks.
+
+    >>> coding_strand_to_AA("ATGCGA")
+    'MR'
+
+    >>> coding_strand_to_AA("ATGCCCGCTTT")
+    'MPA'
+
+    >>> coding_strand_to_AA("ATGCATGAATGTAGATAGATGTGCCC")
+    'MHECR|MC'
     """
-    # TODO: implement this
-    pass
+    aminos = [aa_table[(dna[i:i+3])] for i in range(0,len(dna),3)
+        if len(dna[i:i+3])==3]
+    return ''.join(aminos)
+
 
 
 def gene_finder(dna):
@@ -220,11 +248,23 @@ def gene_finder(dna):
 
         dna: a DNA sequence
         returns: a list of all amino acid sequences coded by the sequence dna.
+
+    tests: tricky to run tests for this one too, because the threshold case is
+    random. Printed the threshold value to elucidate run-to-run return differences.
     """
-    # TODO: implement this
-    pass
+
+    threshold = longest_ORF_noncoding(dna,1500)
+    print "Randomly calculated minimum length threshold:",threshold,"base pairs"
+    sequences = [coding_strand_to_AA(x)
+        for x in find_all_ORFs_both_strands(dna)
+        if len(x) > threshold]
+    return sequences
+
+
 
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    #doctest.run_docstring_examples(find_all_ORFs, globals())
+    # doctest.run_docstring_examples(coding_strand_to_AA, globals())
+    dna = load_seq("./data/X73525.fa")
+    print gene_finder(dna)
